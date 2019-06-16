@@ -4,11 +4,11 @@ AOP在安卓端的实现，让程序员只关注于业务
 
 - 项目地址：[https://github.com/qiaodashaoye/SuperAop](https://github.com/qiaodashaoye/SuperAop)
 
-集成步骤
+集成方法
 ---
 在app 模块目录下的build.gradle中添加
 ```groovy
-apply plugin: 'com.hujiang.android-aspectjx'
+apply plugin: 'android-aspectjx'
 
 ...
 
@@ -34,17 +34,18 @@ dependencies {
 | @SingleClickTrace        |用于防止按钮的重复点击（事件防抖）       |
 
 
-### 用法实例：
+ 用法实例：
+ ---
 
 第一步需要在application中进行全局初始化以及添加全局相关配置，具体使用如下：
 > 简单初始化
 ```
-SuperWidget.getInstance().init(this);
+SuperAop.getInstance().init(this);
         
 ```
 > 如果使用本库中的登陆检测注解，需用以下配置
 ```
-  SuperWidget.getInstance().init(this, new ILogin() {
+  SuperAop.getInstance().init(this, new ILogin() {
               @Override
               public void login(Context context, int actionDefine) {
                   switch (actionDefine) {
@@ -67,16 +68,19 @@ SuperWidget.getInstance().init(this);
           });
 
 ```
-#### 网络判断注解
+ 网络判断注解
+ ---
 
 在需要网络检测的方法上添加@CheckNetTrace即可
 
-#### 按钮防抖注解
+ 按钮防抖注解
+ ---
 
 在按钮点击所要执行的方法上添加@SingleClickTrace，默认防抖时间是500毫秒，若要自定义时间应@SingleClickTrace(1000)
 或@SingleClickTrace(value=1000)
 
-#### 登陆检测注解
+ 登陆检测注解
+ ---
 
 在按钮点击所要执行的方法上添加@CheckLoginTrace，登陆检测注解可以自定义事件，具体用法可看demo或添加群进行交流
 
@@ -169,7 +173,7 @@ beforeMethod和afterMethod对应的都是方法名，分别表示在调用doSome
 ```
 ## Proguard
 ```
- -keep class com.qpg.widget.aop.** { *; }
+ -keep class com.qpg.aop.** { *; }
 ```
 ## 交流方式
  * QQ: 1451449315
