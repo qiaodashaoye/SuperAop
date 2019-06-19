@@ -5,7 +5,7 @@
 
     <application>
         <activity
-            android:name=".aspect.PermissionActivity"
+            android:name=".PermissionRequestActivity"
             android:theme="@android:style/Theme.Translucent" />
     </application>
 </manifest>

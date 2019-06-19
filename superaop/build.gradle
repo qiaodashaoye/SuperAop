@@ -32,7 +32,8 @@ dependencies {
     androidTestImplementation 'androidx.test:runner:1.2.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
     implementation 'org.aspectj:aspectjrt:1.9.4'
-    api 'com.safframework:saf-cache:1.1.1'//可以设置缓存时间的缓存库
+    implementation 'io.reactivex.rxjava2:rxjava:2.2.9'
+    implementation 'io.reactivex.rxjava2:rxandroid:2.1.1'
 }
 
 apply from: '../bintray.gradle'

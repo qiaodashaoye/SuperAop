@@ -2,7 +2,7 @@ package com.qpg.aop.aspect;
 
 import com.qpg.aop.SuperAop;
 import com.qpg.aop.trace.PrefsTrace;
-import com.safframework.prefs.AppPrefs;
+import com.qpg.aop.util.SPUtil;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -37,21 +37,7 @@ public class PrefsAspect {
             String type = ((MethodSignature) joinPoint.getSignature()).getReturnType().toString();
 
             if (!"void".equalsIgnoreCase(type)) {
-                String className = ((MethodSignature) joinPoint.getSignature()).getReturnType().getCanonicalName();
-                AppPrefs appPrefs = AppPrefs.get(SuperAop.getInstance().getContext());
-                if ("int".equals(className) || "java.lang.Integer".equals(className)) {
-                    appPrefs.putInt(key, (Integer) result);
-                } else if ("boolean".equals(className) || "java.lang.Boolean".equals(className)) {
-                    appPrefs.putBoolean(key,(Boolean) result);
-                } else if ("float".equals(className) || "java.lang.Float".equals(className)) {
-                    appPrefs.putFloat(key,(Float) result);
-                } else if ("long".equals(className) || "java.lang.Long".equals(className)) {
-                    appPrefs.putLong(key,(Long) result);
-                } else if ("java.lang.String".equals(className)) {
-                    appPrefs.putString(key,(String) result);
-                } else {
-                    appPrefs.putObject(key,result);
-                }
+                SPUtil.put(SuperAop.getInstance().getContext(), key, result);
             }
         } else {
             // 不影响原来的流程

@@ -1,12 +1,16 @@
 package com.qpg.aop;
 
+import android.annotation.SuppressLint;
 import android.app.Application;
 import android.content.Context;
 
-import com.qpg.aop.intf.ILogin;
+import com.qpg.aop.interf.ILogin;
+import com.qpg.aop.interf.Interceptor;
 
 public class SuperAop {
-    private  Context mContext;
+    @SuppressLint("StaticFieldLeak")
+    private Context mContext;
+    private static Interceptor sInterceptor;
     private ILogin mILogin;
     /* 持有私有静态实例，防止被引用，此处赋值为null，目的是实现延迟加载 */
     private static SuperAop instance = null;
@@ -48,5 +52,13 @@ public class SuperAop {
     }
     public ILogin getLogin() {
         return mILogin;
+    }
+
+    public static void setInterceptor(Interceptor interceptor){
+        sInterceptor = interceptor;
+    }
+
+    public static Interceptor getInterceptor(){
+        return sInterceptor;
     }
 }

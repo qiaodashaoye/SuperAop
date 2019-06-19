@@ -4,7 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 
 import com.qpg.aop.SuperAop;
-import com.qpg.aop.intf.ILogin;
+import com.qpg.aop.interf.ILogin;
 import com.qpg.aop.trace.CheckLoginTrace;
 
 import org.aspectj.lang.ProceedingJoinPoint;

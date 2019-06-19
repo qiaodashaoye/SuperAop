@@ -43,7 +43,7 @@ public class SafeAspect {
             if (Preconditions.isNotBlank(callBack)) {
 
                 try {
-                    Reflect.on(joinPoint.getTarget()).call(callBack);
+                    Reflect.on(joinPoint.getTarget()).call(callBack,e);
                 } catch (ReflectException exception) {
                     exception.printStackTrace();
                    // L.e("no method "+callBack);

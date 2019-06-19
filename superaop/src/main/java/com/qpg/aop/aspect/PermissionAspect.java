@@ -1,91 +1,144 @@
 package com.qpg.aop.aspect;
 
-import android.app.Activity;
-import android.app.Service;
+import android.app.Fragment;
 import android.content.Context;
-import android.content.Intent;
-import android.content.pm.PackageManager;
 
-import androidx.core.content.ContextCompat;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentActivity;
-
+import com.qpg.aop.PermissionRequestActivity;
+import com.qpg.aop.SuperAop;
+import com.qpg.aop.bean.CancelBean;
+import com.qpg.aop.bean.DenyBean;
+import com.qpg.aop.interf.IPermission;
+import com.qpg.aop.trace.PermissionCanceledTrace;
+import com.qpg.aop.trace.PermissionDeniedTrace;
 import com.qpg.aop.trace.PermissionTrace;
-
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
-import org.aspectj.lang.reflect.MethodSignature;
-
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.List;
 
+/**
+ * 权限切面Aspect类
+ */
 @Aspect
 public class PermissionAspect {
 
-    private static final String POINTCUT_METHOD = "execution(@com.qpg.widget.aop.trace.PermissionTrace * *(..))";
+    Context context;
 
-    @Pointcut(POINTCUT_METHOD)
-    public void methodAnnotatedWithPermission() {
+    private static final String PERMISSION_REQUEST_POINTCUT =
+            "execution(@com.qpg.aop.trace.PermissionTrace * *(..))";
+
+    @Pointcut(PERMISSION_REQUEST_POINTCUT + " && @annotation(permissionTrace)")
+    public void requestPermissionMethod(PermissionTrace permissionTrace) {
     }
 
-    @Around("methodAnnotatedWithPermission()")
-    public Object permissionMethod(final ProceedingJoinPoint joinPoint) throws Throwable {
+    @Around("requestPermissionMethod(permissionTrace)")
+    public void AroundJoinPoint(final ProceedingJoinPoint joinPoint, PermissionTrace permissionTrace) {
 
-        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-        Method method = signature.getMethod();
+        final Object object = joinPoint.getThis();
+        if (object == null) return;
 
-        PermissionTrace permission = method.getAnnotation(PermissionTrace.class);
-
-        String[] permissions = permission.value();
-        int requestCode = permission.requestCode();
-
-        Object object = joinPoint.getThis();
-
-        Context context = null;
-
-        if (object instanceof Activity) {
-            context = (Activity) object;
-        } else if (object instanceof FragmentActivity) {
-            context = (FragmentActivity) object;
+        if (object instanceof Context) {
+            context = (Context) object;
         } else if (object instanceof Fragment) {
-            context = ((Fragment) object).getContext();
-        } else if (object instanceof Service) {
-            context = (Service) object;
-        }
-
-        Object o = null;
-
-        if (checkPermissions(context, permissions)) {
-            o = joinPoint.proceed();
+            context = ((Fragment) object).getActivity();
+        } else if (object instanceof androidx.fragment.app.Fragment) {
+            context = ((androidx.fragment.app.Fragment) object).getActivity();
         } else {
-
-            Intent intent = new Intent();
-            intent.setClass(context, PermissionActivity.class);
-            intent.putExtra("permissions", permissions);
-            intent.putExtra("requestcode", requestCode);
-            context.startActivity(intent);
-        }
-
-        return o;
-    }
-
-    private boolean checkPermission(Context context, String permission) {
-
-        if (ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED) {
-            return true;
-        }
-        return false;
-    }
-
-    private boolean checkPermissions(Context context, String[] permissions) {
-
-        for(String permission : permissions) {
-            if (!checkPermission(context, permission)) {
-                return false;
+            //获取切入点方法上的参数列表
+            Object[] objects = joinPoint.getArgs();
+            if (objects.length > 0) {
+                //非静态方法且第一个参数为context
+                if (objects[0] instanceof Context) {
+                    context = (Context) objects[0];
+                } else {
+                    //没有传入context 默认使用application
+                    context = SuperAop.getInstance().getContext();
+                }
+            } else {
+                context = SuperAop.getInstance().getContext();
             }
+
         }
-        return true;
+
+        if (context == null || permissionTrace == null) return;
+
+        PermissionRequestActivity.PermissionRequest(context, permissionTrace.value(),
+                permissionTrace.requestCode(), new IPermission() {
+                    @Override
+                    public void PermissionGranted() {
+                        try {
+                            joinPoint.proceed();
+                        } catch (Throwable throwable) {
+                            throwable.printStackTrace();
+                        }
+                    }
+
+                    @Override
+                    public void PermissionDenied(int requestCode, List<String> denyList) {
+                        Class<?> cls = object.getClass();
+                        Method[] methods = cls.getDeclaredMethods();
+                        if (methods.length == 0) return;
+                        for (Method method : methods) {
+                            //过滤不含自定义注解PermissionDenied的方法
+                            boolean isHasAnnotation = method.isAnnotationPresent(PermissionDeniedTrace.class);
+                            if (isHasAnnotation) {
+                                method.setAccessible(true);
+                                //获取方法类型
+                                Class<?>[] types = method.getParameterTypes();
+                                if (types.length != 1) return;
+                                //获取方法上的注解
+                                PermissionDeniedTrace aInfo = method.getAnnotation(PermissionDeniedTrace.class);
+                                if (aInfo == null) return;
+                                //解析注解上对应的信息
+                                DenyBean bean = new DenyBean();
+                                bean.setRequestCode(requestCode);
+                                bean.setContext(context);
+                                bean.setDenyList(denyList);
+                                try {
+                                    method.invoke(object, bean);
+                                } catch (IllegalAccessException e) {
+                                    e.printStackTrace();
+                                } catch (InvocationTargetException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void PermissionCanceled(int requestCode) {
+                        Class<?> cls = object.getClass();
+                        Method[] methods = cls.getDeclaredMethods();
+                        if (methods.length == 0) return;
+                        for (Method method : methods) {
+                            //过滤不含自定义注解PermissionCanceled的方法
+                            boolean isHasAnnotation = method.isAnnotationPresent(PermissionCanceledTrace.class);
+                            if (isHasAnnotation) {
+                                method.setAccessible(true);
+                                //获取方法类型
+                                Class<?>[] types = method.getParameterTypes();
+                                if (types.length != 1) return;
+                                //获取方法上的注解
+                                PermissionCanceledTrace aInfo = method.getAnnotation(PermissionCanceledTrace.class);
+                                if (aInfo == null) return;
+                                //解析注解上对应的信息
+                                CancelBean bean = new CancelBean();
+                                bean.setContext(context);
+                                bean.setRequestCode(requestCode);
+                                try {
+                                    method.invoke(object, bean);
+                                } catch (IllegalAccessException e) {
+                                    e.printStackTrace();
+                                } catch (InvocationTargetException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }
+                    }
+                });
     }
 
 }

@@ -2,7 +2,7 @@ package com.qpg.aop.aspect;
 
 import com.qpg.aop.SuperAop;
 import com.qpg.aop.trace.CacheTrace;
-import com.safframework.cache.Cache;
+import com.qpg.aop.util.ACache;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -37,11 +37,12 @@ public class CacheAspect {
             int expiry = cacheable.expiry();
 
             result = joinPoint.proceed();
-            Cache cache = Cache.get(SuperAop.getInstance().getContext());
+            //方法执行后进行缓存（缓存对象必须是方法返回值）
+            ACache aCache = ACache.get(SuperAop.getInstance().getContext());
             if (expiry>0) {
-                cache.put(key,(Serializable)result,expiry);
+                aCache.put(key,(Serializable)result,expiry);
             } else {
-                cache.put(key,(Serializable)result);
+                aCache.put(key,(Serializable)result);
             }
         } else {
             // 不影响原来的流程
