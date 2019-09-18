@@ -17,7 +17,7 @@ public class DeletePrefsAspect {
     public void onPrefsDeleteMethod() {
     }
 
-    @Around("onPrefsDeleteMethod() && @annotation(prefsEvict)")
+    @Around("onPrefsDeleteMethod() && @annotation(deleteSpTrace)")
     public Object doPrefsDeleteMethod(final ProceedingJoinPoint joinPoint, DeleteSpTrace deleteSpTrace) throws Throwable {
         Object result = null;
         if (deleteSpTrace!=null) {
